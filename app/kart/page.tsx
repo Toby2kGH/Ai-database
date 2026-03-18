@@ -42,7 +42,7 @@ export default function KartPage() {
         </div>
       </div>
 
-      <NorgesKart losninger={MOCKDATA_LOSNINGER} type={visType} />
+      <NorgesKart losninger={MOCKDATA_LOSNINGER} />
 
       {/* Info under kartet */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">

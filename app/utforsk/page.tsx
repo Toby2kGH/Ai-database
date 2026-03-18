@@ -64,7 +64,7 @@ function UtforskInnhold() {
       }
       if (valgtRHF && l.rhf !== valgtRHF) return false;
       if (valgtForetak && l.helseforetak !== valgtForetak) return false;
-      if (valgteFagfelt.length > 0 && !valgteFagfelt.some((f) => l.fagfelt.includes(f as any))) return false;
+      if (valgteFagfelt.length > 0 && !valgteFagfelt.some((f) => (l.fagfelt as string[]).includes(f))) return false;
       if (valgteStatuser.length > 0 && !valgteStatuser.includes(l.godkjenningsStatus)) return false;
       return true;
     });

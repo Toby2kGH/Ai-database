@@ -198,27 +198,37 @@ export default function Forside() {
                 { href: "https://dmp.no", intern: false, tittel: "DMP – Medisinsk utstyr register", beskrivelse: "Sjekk CE-merking og MDR-klassifisering", ikon: "🏛️" },
                 { href: "https://datatilsynet.no/regelverk/veileder/kunstig-intelligens/", intern: false, tittel: "Datatilsynets KI-veileder", beskrivelse: "Personvern og DPIA ved bruk av KI", ikon: "🔒" },
                 { href: "/regelverk", intern: true, tittel: "Fullstendig regelverksoversikt", beskrivelse: "Alle lenker og kontaktpunkter samlet", ikon: "📂" },
-              ].map((r) => {
-                const Component = r.intern ? Link : "a";
-                const ekstra = r.intern ? {} : { target: "_blank", rel: "noopener noreferrer" };
-                return (
-                  <Component
+              ].map((r) =>
+                r.intern ? (
+                  <Link
                     key={r.href}
                     href={r.href}
-                    {...(ekstra as any)}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                  >
+                    <span className="text-lg flex-shrink-0">{r.ikon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors">{r.tittel}</p>
+                      <p className="text-xs text-gray-500">{r.beskrivelse}</p>
+                    </div>
+                  </Link>
+                ) : (
+                  <a
+                    key={r.href}
+                    href={r.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
                   >
                     <span className="text-lg flex-shrink-0">{r.ikon}</span>
                     <div>
                       <p className="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
-                        {r.tittel}
-                        {!r.intern && <span className="text-gray-400 ml-1">↗</span>}
+                        {r.tittel}<span className="text-gray-400 ml-1">↗</span>
                       </p>
                       <p className="text-xs text-gray-500">{r.beskrivelse}</p>
                     </div>
-                  </Component>
-                );
-              })}
+                  </a>
+                )
+              )}
               <div className="mt-2 p-3 bg-primary-50 rounded-lg border border-primary-100">
                 <p className="text-xs font-semibold text-primary-700 mb-1">Tverretatlig veiledning</p>
                 <p className="text-xs text-primary-600">

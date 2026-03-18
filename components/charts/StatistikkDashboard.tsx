@@ -66,7 +66,7 @@ export function GodkjenningsStatusDiagram({ losninger }: Props) {
   const data = Object.entries(perStatus)
     .filter(([, v]) => v > 0)
     .map(([status, antall]) => ({
-      name: godkjenningsStatusTekst(status as any),
+      name: godkjenningsStatusTekst(status as Parameters<typeof godkjenningsStatusTekst>[0]),
       value: antall,
       farge: STATUS_FARGER[status],
     }));

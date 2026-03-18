@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Map as LeafletMap } from "leaflet";
 import { KILosning, HELSEFORETAK_KOORDINATER, GodkjenningsStatus } from "@/lib/types";
-import { godkjenningsStatusFarge, godkjenningsStatusTekst } from "@/lib/utils";
+import { godkjenningsStatusFarge } from "@/lib/utils";
 import { GodkjenningsBadge } from "@/components/ui/GodkjenningsBadge";
 import Link from "next/link";
 
 interface Props {
   losninger: KILosning[];
-  type: "produkt" | "forskning";
 }
 
 // Gruppér løsninger per helseforetak
@@ -32,16 +32,17 @@ function dominantStatus(losninger: KILosning[]): GodkjenningsStatus {
   return "ukjent";
 }
 
-export function NorgesKart({ losninger, type }: Props) {
+export function NorgesKart({ losninger }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const leafletRef = useRef<any>(null);
+  const leafletRef = useRef<LeafletMap | null>(null);
   const [valgtForetak, setValgtForetak] = useState<string | null>(null);
   const [foretakLosninger, setForetakLosninger] = useState<KILosning[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const gruppert = grupperPerForetak(losninger);
+  const gruppert = useMemo(() => grupperPerForetak(losninger), [losninger]);
 
   useEffect(() => {
+
     // Leaflet importeres dynamisk (SSR-safe)
     const initKart = async () => {
       const L = (await import("leaflet")).default;
@@ -117,7 +118,7 @@ export function NorgesKart({ losninger, type }: Props) {
         leafletRef.current = null;
       }
     };
-  }, [losninger]);
+  }, [gruppert]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-[600px]">

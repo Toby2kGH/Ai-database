@@ -8,9 +8,6 @@ export const metadata: Metadata = {
   title: "KI-løsningsregisteret – Helsedirektoratet",
   description:
     "Nasjonal portal for innmelding og oversikt over KI-løsninger i norsk helse- og omsorgstjeneste.",
-  other: {
-    "leaflet-css": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-  },
 };
 
 export default function RootLayout({
@@ -21,12 +18,10 @@ export default function RootLayout({
   return (
     <html lang="nb">
       <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
-        />
+        {/* Leaflet CSS lastes lokalt fra /public – ingen ekstern CDN-avhengighet.
+            eslint-disable-next-line @next/next/no-css-tags */}
+        {/* eslint-disable-next-line @next/next/no-css-tags */}
+        <link rel="stylesheet" href="/leaflet.css" />
       </head>
       <body className="min-h-screen flex flex-col">
         <RolleProvider>

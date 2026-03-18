@@ -4,18 +4,6 @@ import { useState } from "react";
 import { ChevronRight, ChevronDown, ExternalLink, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import Link from "next/link";
 
-type TreSteg = {
-  id: string;
-  sporsmal: string;
-  svar?: {
-    ja?: TreSteg | "ferdig-ok" | "ferdig-advarsel";
-    nei?: TreSteg | "ferdig-ok" | "ferdig-advarsel";
-    tekst?: string;
-  };
-  ressurser?: { label: string; href: string }[];
-  info?: string;
-};
-
 export default function VeilederPage() {
   const [aktivScenario, setAktivScenario] = useState<number | null>(null);
 

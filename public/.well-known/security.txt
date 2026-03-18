@@ -1,0 +1,5 @@
+Contact: mailto:sikkerhet@helsedir.no
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: nb, en
+Policy: https://www.helsedirektoratet.no/om-oss/personvern-og-informasjonssikkerhet
+Canonical: https://ki-register.helsedir.no/.well-known/security.txt

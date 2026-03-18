@@ -174,7 +174,7 @@ export default function MeldInnForskningPage() {
     );
   }
 
-  const update = (felt: keyof FormData, verdi: any) => {
+  const update = (felt: keyof FormData, verdi: string | boolean | number[]) => {
     setData((prev) => ({ ...prev, [felt]: verdi }));
   };
 

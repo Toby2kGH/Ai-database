@@ -155,7 +155,7 @@ export default function MeldInnProduktPage() {
     );
   }
 
-  const update = (felt: keyof FormData, verdi: any) => {
+  const update = (felt: keyof FormData, verdi: string | boolean | string[]) => {
     setData((prev) => ({ ...prev, [felt]: verdi }));
   };
 

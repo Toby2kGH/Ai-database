@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /api/
+Disallow: /tilsyn/
+Disallow: /admin/
+
+# Offentlige sider er tillatt å indeksere
+Allow: /
+Allow: /utforsk/
+Allow: /kart/
+Allow: /veileder/
+Allow: /regelverk/
+Allow: /forskning/
+
+Sitemap: https://ki-register.helsedir.no/sitemap.xml
