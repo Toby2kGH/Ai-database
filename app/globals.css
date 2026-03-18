@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Leaflet CSS - lastes via CDN for kart */
+
+@layer base {
+  :root {
+    --background: #F5F7F5;
+    --foreground: #1a1a1a;
+    --card: #ffffff;
+    --card-foreground: #1a1a1a;
+    --popover: #ffffff;
+    --popover-foreground: #1a1a1a;
+    --primary: #006A4E;
+    --primary-foreground: #ffffff;
+    --secondary: #E6F4F0;
+    --secondary-foreground: #006A4E;
+    --muted: #f0f4f0;
+    --muted-foreground: #6b7280;
+    --accent: #00A878;
+    --accent-foreground: #ffffff;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: #d1e8e0;
+    --input: #d1e8e0;
+    --ring: #006A4E;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-neutral-bg text-foreground;
+    font-family: 'Source Sans Pro', 'Inter', Arial, Helvetica, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  .badge-godkjent {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+  .badge-delvis {
+    @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+  .badge-ikke-godkjent {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
+  .badge-ukjent {
+    @apply bg-gray-100 text-gray-600 border border-gray-200;
+  }
+}
