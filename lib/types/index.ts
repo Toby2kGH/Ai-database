@@ -212,8 +212,63 @@ export interface Forskningsprosjekt {
   helseforetak: string;
 }
 
+// Status på en bruksmelding hos Helsetilsynet
+export type BruksmeldingStatus =
+  | "ny"
+  | "til-oppfolging"
+  | "godkjent"
+  | "avvist";
+
+// Omfang av bruk
+export type BruksOmfang =
+  | "pilot"          // Begrenset pilot, under 50 pasienter
+  | "avdeling"       // Én avdeling
+  | "foretak"        // Hele helseforetaket
+  | "regionalt";     // Regionalt / RHF-nivå
+
+// Melding om bruk av en godkjent KI-løsning (innmeldt av virksomhetsleder)
+export interface KIBruksmelding {
+  id: string;
+  innmeldtDato: string;
+  sistOppdatert: string;
+  referansenummer: string;
+
+  // Hvilken løsning brukes
+  kiLosningId: string;
+  produktnavn: string;
+  leverandor: string;
+  kiLosningGodkjenningsStatus: GodkjenningsStatus;
+
+  // Virksomhetsopplysninger
+  rhf: RHF;
+  helseforetak: string;
+  klinikk: string;
+  seksjon?: string;
+  ansvarligLeder: {
+    navn: string;
+    tittel: string;
+    epost: string;
+  };
+
+  // Bruksbeskrivelse
+  planlagtBruk: string;          // Fritekstbeskrivelse av planlagt bruk
+  erInnenforGodkjenning: "ja" | "nei" | "usikker";
+  begrunnelseAvvik?: string;     // Påkrevd hvis nei/usikker
+
+  // Omfang
+  omfang: BruksOmfang;
+  estimertAntallPasienterAarlig: number;
+  planlagtOppstart: string;
+  planlagtVarighet: "under-3-mnd" | "3-12-mnd" | "over-1-aar" | "lopende";
+
+  // Tilsynsstatus
+  status: BruksmeldingStatus;
+  tilsynskommentar?: string;
+}
+
 // Brukerrolle for demo-simulering
 export type BrukerRolle =
+  | "virksomhetsleder"
   | "klinisk-leder"
   | "it-sikkerhet"
   | "rhf-koordinator"
@@ -237,6 +292,14 @@ export const BRUKER_PROFILER: BrukerProfil[] = [
     navn: "Offentlig besøkende",
     organisasjon: "",
     avdeling: "",
+  },
+  {
+    rolle: "virksomhetsleder",
+    navn: "Direktør Siw Andersen",
+    organisasjon: "St. Olavs hospital",
+    avdeling: "Sykehusledelse",
+    rhf: "Helse Midt-Norge",
+    helseforetak: "St. Olavs hospital",
   },
   {
     rolle: "klinisk-leder",

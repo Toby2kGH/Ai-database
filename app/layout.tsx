@@ -3,6 +3,7 @@ import "./globals.css";
 import { RolleProvider } from "@/lib/context/RolleContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { DisclaimerBanner } from "@/components/layout/DisclaimerBanner";
 
 export const metadata: Metadata = {
   title: "KI-løsningsregisteret – Helsedirektoratet",
@@ -25,6 +26,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col">
         <RolleProvider>
+          <DisclaimerBanner />
           <Header />
           <main className="flex-grow">{children}</main>
           <Footer />
