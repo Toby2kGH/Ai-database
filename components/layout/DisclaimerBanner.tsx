@@ -7,13 +7,21 @@ export function DisclaimerBanner() {
   const [vist, setVist] = useState(true);
 
   useEffect(() => {
-    if (sessionStorage.getItem("disclaimer-skjult") === "true") {
-      setVist(false);
+    try {
+      if (sessionStorage.getItem("disclaimer-skjult") === "true") {
+        setVist(false);
+      }
+    } catch {
+      // Ignorer (privat modus eller deaktivert sessionStorage)
     }
   }, []);
 
   const skjul = () => {
-    sessionStorage.setItem("disclaimer-skjult", "true");
+    try {
+      sessionStorage.setItem("disclaimer-skjult", "true");
+    } catch {
+      // Ignorer
+    }
     setVist(false);
   };
 

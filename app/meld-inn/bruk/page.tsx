@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRolle } from "@/lib/context/RolleContext";
 import { MOCKDATA_LOSNINGER } from "@/lib/data/losninger";
 import { HELSEFORETAK_PER_RHF } from "@/lib/types";
@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Send,
+  Save,
 } from "lucide-react";
 import Link from "next/link";
 import { Shield } from "lucide-react";
@@ -72,6 +73,8 @@ interface FormData {
   planlagtVarighet: string;
 }
 
+const AUTOSAVE_KEY = "ki-bruksmelding-utkast";
+
 const TOM_FORM: FormData = {
   kiLosningId: "",
   planlagtBruk: "",
@@ -93,14 +96,43 @@ const TOM_FORM: FormData = {
 export default function MeldInnBrukPage() {
   const { bruker } = useRolle();
   const [aktivtSteg, setAktivtSteg] = useState(1);
-  const [form, setForm] = useState<FormData>(() => ({
-    ...TOM_FORM,
-    rhf: (bruker.rhf as RHF) || "",
-    helseforetak: bruker.helseforetak || "",
-    lederNavn: bruker.navn || "",
-  }));
+  const [form, setForm] = useState<FormData>(() => {
+    try {
+      const lagret = localStorage.getItem(AUTOSAVE_KEY);
+      if (lagret) return JSON.parse(lagret) as FormData;
+    } catch { /* ignorer */ }
+    return {
+      ...TOM_FORM,
+      rhf: (bruker.rhf as RHF) || "",
+      helseforetak: bruker.helseforetak || "",
+      lederNavn: bruker.navn || "",
+    };
+  });
   const [sok, setSok] = useState("");
   const [sendt, setSendt] = useState(false);
+  const [harUtkast, setHarUtkast] = useState(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sjekk om det finnes et lagret utkast
+  useEffect(() => {
+    try {
+      setHarUtkast(!!localStorage.getItem(AUTOSAVE_KEY));
+    } catch { /* ignorer */ }
+  }, []);
+
+  // Autosave med 2 sekunders debounce
+  useEffect(() => {
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(form));
+        setHarUtkast(true);
+      } catch { /* ignorer */ }
+    }, 2000);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [form]);
 
   const sokResultater = useMemo(() => {
     if (sok.trim().length < 2) return [];
@@ -132,7 +164,7 @@ export default function MeldInnBrukPage() {
           form.planlagtBruk.trim().length >= 20 &&
           !!form.erInnenforGodkjenning &&
           (form.erInnenforGodkjenning === "ja" ||
-            form.begrunnelseAvvik.trim().length >= 10)
+            form.begrunnelseAvvik.trim().length >= 50)
         );
       case 3:
         return (
@@ -142,20 +174,43 @@ export default function MeldInnBrukPage() {
           form.lederNavn.trim().length > 0 &&
           form.lederEpost.includes("@")
         );
-      case 4:
+      case 4: {
+        const antall = parseInt(form.estimertAntallPasienter);
+        const oppstart = form.planlagtOppstart
+          ? new Date(form.planlagtOppstart)
+          : null;
+        const idag = new Date();
+        idag.setHours(0, 0, 0, 0);
         return (
           !!form.omfang &&
-          parseInt(form.estimertAntallPasienter) > 0 &&
-          !!form.planlagtOppstart &&
+          antall > 0 &&
+          antall <= 500000 &&
+          !!oppstart &&
+          oppstart >= idag &&
           !!form.planlagtVarighet
         );
+      }
       default:
         return false;
     }
   }
 
   function sendSkjema() {
+    try { localStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignorer */ }
     setSendt(true);
+  }
+
+  function nullstillUtkast() {
+    try { localStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignorer */ }
+    setHarUtkast(false);
+    setForm({
+      ...TOM_FORM,
+      rhf: (bruker.rhf as RHF) || "",
+      helseforetak: bruker.helseforetak || "",
+      lederNavn: bruker.navn || "",
+    });
+    setAktivtSteg(1);
+    setSok("");
   }
 
   if (!["virksomhetsleder", "klinisk-leder", "rhf-koordinator"].includes(bruker.rolle)) {
@@ -198,7 +253,7 @@ export default function MeldInnBrukPage() {
               Utforsk KI-løsninger
             </Link>
             <button
-              onClick={() => { setForm(TOM_FORM); setAktivtSteg(1); setSendt(false); setSok(""); }}
+              onClick={nullstillUtkast}
               className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
             >
               Meld inn ny bruk
@@ -218,6 +273,22 @@ export default function MeldInnBrukPage() {
           Virksomhetsleder skal melde til Helsetilsynet ved planlagt bruk av godkjente KI-løsninger i klinisk praksis.
         </p>
       </div>
+
+      {/* Autosave-banner */}
+      {harUtkast && aktivtSteg === 1 && !form.kiLosningId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <Save size={15} />
+            Du har et lagret utkast. Fortsett der du slapp, eller start på nytt.
+          </div>
+          <button
+            onClick={nullstillUtkast}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+          >
+            Start på nytt
+          </button>
+        </div>
+      )}
 
       {/* Stepper */}
       <Stepper steg={STEG} aktivtSteg={aktivtSteg} />
@@ -363,16 +434,48 @@ function Steg1({
       )}
 
       {valgtLosning && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-xs font-semibold text-green-700 mb-1">Valgt løsning:</p>
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold text-gray-800">{valgtLosning.produktnavn}</p>
-              <p className="text-xs text-gray-500">{valgtLosning.leverandor}</p>
+        <>
+          <div className={`border rounded-lg p-4 ${
+            valgtLosning.godkjenningsStatus === "ikke-godkjent"
+              ? "bg-red-50 border-red-200"
+              : valgtLosning.godkjenningsStatus === "under-utproving"
+              ? "bg-amber-50 border-amber-200"
+              : "bg-green-50 border-green-200"
+          }`}>
+            <p className={`text-xs font-semibold mb-1 ${
+              valgtLosning.godkjenningsStatus === "ikke-godkjent"
+                ? "text-red-700"
+                : valgtLosning.godkjenningsStatus === "under-utproving"
+                ? "text-amber-700"
+                : "text-green-700"
+            }`}>Valgt løsning:</p>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{valgtLosning.produktnavn}</p>
+                <p className="text-xs text-gray-500">{valgtLosning.leverandor}</p>
+              </div>
+              <GodkjenningsBadge status={valgtLosning.godkjenningsStatus} />
             </div>
-            <GodkjenningsBadge status={valgtLosning.godkjenningsStatus} />
           </div>
-        </div>
+          {valgtLosning.godkjenningsStatus === "under-utproving" && (
+            <div className="mt-2 bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                <strong>Advarsel:</strong> Denne løsningen er under utprøving og ikke fullvalidert for produksjonsbruk.
+                Bruk utenfor godkjent studie krever særskilt begrunnelse.
+              </p>
+            </div>
+          )}
+          {valgtLosning.godkjenningsStatus === "ikke-godkjent" && (
+            <div className="mt-2 bg-red-50 border border-red-300 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle size={15} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-800">
+                <strong>OBS:</strong> Denne løsningen er ikke godkjent. Du kan fortsette for å melde inn planlagt bruk,
+                men Helsetilsynet vil behandle dette med ekstra grundighet.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {!valgtLosning && sok.trim().length === 0 && (
@@ -479,6 +582,9 @@ function Steg2({
             placeholder="F.eks.: «Valideringsstudien inkluderte ikke vår pasientgruppe (samiskspråklige, 70+), og vi er usikre på overførbarheten.»"
             className="w-full px-3 py-2.5 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white resize-none"
           />
+          <p className="text-xs text-amber-700 mt-1">
+            {form.begrunnelseAvvik.length}/50 tegn minimum
+          </p>
         </div>
       )}
     </div>
@@ -672,8 +778,16 @@ function Steg4({
             onChange={(e) => oppdater("estimertAntallPasienter", e.target.value)}
             placeholder="F.eks. 4200"
             min={1}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+            max={500000}
+            className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 ${
+              parseInt(form.estimertAntallPasienter) > 500000
+                ? "border-red-300 bg-red-50"
+                : "border-gray-200"
+            }`}
           />
+          {parseInt(form.estimertAntallPasienter) > 500000 && (
+            <p className="text-xs text-red-600 mt-1">Verdien virker urimelig høy. Kontroller estimatet.</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -683,8 +797,16 @@ function Steg4({
             type="date"
             value={form.planlagtOppstart}
             onChange={(e) => oppdater("planlagtOppstart", e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+            min={new Date().toISOString().split("T")[0]}
+            className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 ${
+              form.planlagtOppstart && new Date(form.planlagtOppstart) < new Date()
+                ? "border-red-300 bg-red-50"
+                : "border-gray-200"
+            }`}
           />
+          {form.planlagtOppstart && new Date(form.planlagtOppstart) < new Date(new Date().toISOString().split("T")[0]) && (
+            <p className="text-xs text-red-600 mt-1">Oppstartsdato kan ikke være i fortiden.</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">

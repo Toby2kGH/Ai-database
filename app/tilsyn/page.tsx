@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRolle } from "@/lib/context/RolleContext";
 import { MOCKDATA_LOSNINGER } from "@/lib/data/losninger";
 import { MOCKDATA_BRUKSMELDINGER } from "@/lib/data/bruksmeldinger";
+import type { KIBruksmelding, BruksmeldingStatus } from "@/lib/types";
 import { GodkjenningsBadge } from "@/components/ui/GodkjenningsBadge";
 import { eksporterCSV, formatDato } from "@/lib/utils";
 import {
@@ -17,6 +18,9 @@ import {
   CheckCircle2,
   Clock,
   XOctagon,
+  ChevronUp,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -24,7 +28,16 @@ import {
   GodkjenningsStatusDiagram,
 } from "@/components/charts/StatistikkDashboard";
 
+type SorteringKolonne = "referansenummer" | "produktnavn" | "helseforetak" | "status" | "innmeldtDato";
+type SorteringRetning = "asc" | "desc";
+
 type Fane = "losninger" | "bruksmeldinger";
+
+interface BehandleState {
+  melding: KIBruksmelding;
+  nyStatus: BruksmeldingStatus;
+  kommentar: string;
+}
 
 const BRUKSMELDING_STATUS_META: Record<
   string,
@@ -57,6 +70,12 @@ export default function TilsynPage() {
   const [aktivFane, setAktivFane] = useState<Fane>("losninger");
   const [aktivtFilter, setAktivtFilter] = useState<string>("alle");
   const [bruksFilter, setBruksFilter] = useState<string>("alle");
+  const [sortering, setSortering] = useState<{ kolonne: SorteringKolonne; retning: SorteringRetning }>({
+    kolonne: "innmeldtDato",
+    retning: "desc",
+  });
+  const [behandleState, setBehandleState] = useState<BehandleState | null>(null);
+  const [behandledeIder, setBehandledeIder] = useState<Record<string, { status: BruksmeldingStatus; kommentar: string }>>({});
 
   const filtrerteLosninger = useMemo(() => {
     switch (aktivtFilter) {
@@ -83,9 +102,54 @@ export default function TilsynPage() {
   }, [aktivtFilter]);
 
   const filtrerteBruksmeldinger = useMemo(() => {
-    if (bruksFilter === "alle") return MOCKDATA_BRUKSMELDINGER;
-    return MOCKDATA_BRUKSMELDINGER.filter((b) => b.status === bruksFilter);
-  }, [bruksFilter]);
+    const base = MOCKDATA_BRUKSMELDINGER.map((b) => ({
+      ...b,
+      ...(behandledeIder[b.id] ?? {}),
+    }));
+    const filtrert = bruksFilter === "alle" ? base : base.filter((b) => b.status === bruksFilter);
+    return [...filtrert].sort((a, b) => {
+      const mul = sortering.retning === "asc" ? 1 : -1;
+      const va = String(a[sortering.kolonne] ?? "");
+      const vb = String(b[sortering.kolonne] ?? "");
+      return va.localeCompare(vb) * mul;
+    });
+  }, [bruksFilter, sortering, behandledeIder]);
+
+  function toggleSortering(kolonne: SorteringKolonne) {
+    setSortering((prev) =>
+      prev.kolonne === kolonne
+        ? { kolonne, retning: prev.retning === "asc" ? "desc" : "asc" }
+        : { kolonne, retning: "asc" }
+    );
+  }
+
+  function SorteringsIkon({ kolonne }: { kolonne: SorteringKolonne }) {
+    if (sortering.kolonne !== kolonne) return <ChevronUp size={12} className="text-gray-300" />;
+    return sortering.retning === "asc"
+      ? <ChevronUp size={12} className="text-primary-500" />
+      : <ChevronDown size={12} className="text-primary-500" />;
+  }
+
+  function apneBehandle(melding: KIBruksmelding) {
+    const gjeldende = behandledeIder[melding.id];
+    setBehandleState({
+      melding,
+      nyStatus: gjeldende?.status ?? melding.status,
+      kommentar: gjeldende?.kommentar ?? melding.tilsynskommentar ?? "",
+    });
+  }
+
+  function lagreBehandling() {
+    if (!behandleState) return;
+    setBehandledeIder((prev) => ({
+      ...prev,
+      [behandleState.melding.id]: {
+        status: behandleState.nyStatus,
+        kommentar: behandleState.kommentar,
+      },
+    }));
+    setBehandleState(null);
+  }
 
   const varsler = {
     mangler_dmp: MOCKDATA_LOSNINGER.filter((l) => l.ceMerket === "ja" && !l.dmpUrl).length,
@@ -512,33 +576,39 @@ export default function TilsynPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Ref.nr
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Løsning
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Virksomhet
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Innenfor godkj.
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Omfang
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Status
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Innmeldt
-                    </th>
+                    {(
+                      [
+                        { kolonne: "referansenummer" as SorteringKolonne, label: "Ref.nr" },
+                        { kolonne: "produktnavn" as SorteringKolonne, label: "Løsning" },
+                        { kolonne: "helseforetak" as SorteringKolonne, label: "Virksomhet" },
+                        { kolonne: null, label: "Innenfor godkj." },
+                        { kolonne: null, label: "Omfang" },
+                        { kolonne: "status" as SorteringKolonne, label: "Status" },
+                        { kolonne: "innmeldtDato" as SorteringKolonne, label: "Innmeldt" },
+                        { kolonne: null, label: "" },
+                      ] as { kolonne: SorteringKolonne | null; label: string }[]
+                    ).map(({ kolonne, label }, i) => (
+                      <th
+                        key={i}
+                        onClick={kolonne ? () => toggleSortering(kolonne) : undefined}
+                        className={`text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${
+                          kolonne ? "cursor-pointer select-none hover:text-gray-700" : ""
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          {kolonne && <SorteringsIkon kolonne={kolonne} />}
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtrerteBruksmeldinger.map((b) => {
+                    const gjeldende = behandledeIder[b.id];
+                    const gjeldendeStatus = gjeldende?.status ?? b.status;
                     const statusMeta =
-                      BRUKSMELDING_STATUS_META[b.status] ??
+                      BRUKSMELDING_STATUS_META[gjeldendeStatus] ??
                       BRUKSMELDING_STATUS_META["ny"];
                     return (
                       <tr key={b.id} className="hover:bg-gray-50 transition-colors">
@@ -582,9 +652,20 @@ export default function TilsynPage() {
                             {statusMeta.ikon}
                             {statusMeta.etikett}
                           </span>
+                          {gjeldende && (
+                            <span className="ml-1 text-xs text-gray-400">(oppdatert)</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400">
                           {formatDato(b.innmeldtDato)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => apneBehandle(b)}
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium whitespace-nowrap"
+                          >
+                            Behandle →
+                          </button>
                         </td>
                       </tr>
                     );
@@ -593,6 +674,86 @@ export default function TilsynPage() {
               </table>
             </div>
           </div>
+
+          {/* Behandle-modal */}
+          {behandleState && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-800">
+                    Behandle bruksmelding
+                  </h3>
+                  <button onClick={() => setBehandleState(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="px-5 py-4 space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1">
+                    <p><span className="text-gray-500">Ref:</span> <strong>{behandleState.melding.referansenummer}</strong></p>
+                    <p><span className="text-gray-500">Løsning:</span> {behandleState.melding.produktnavn}</p>
+                    <p><span className="text-gray-500">Virksomhet:</span> {behandleState.melding.helseforetak.split("(")[0].trim()} · {behandleState.melding.klinikk}</p>
+                    <p><span className="text-gray-500">Planlagt bruk:</span> <em>{behandleState.melding.planlagtBruk.slice(0, 120)}…</em></p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Ny status
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["ny", "til-oppfolging", "godkjent", "avvist"] as BruksmeldingStatus[]).map((s) => {
+                        const meta = BRUKSMELDING_STATUS_META[s];
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setBehandleState((prev) => prev ? { ...prev, nyStatus: s } : null)}
+                            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all ${
+                              behandleState.nyStatus === s
+                                ? `${meta.farge} ring-1 ring-offset-1 ring-gray-400`
+                                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {meta.ikon}
+                            {meta.etikett}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Tilsynskommentar
+                    </label>
+                    <textarea
+                      value={behandleState.kommentar}
+                      onChange={(e) =>
+                        setBehandleState((prev) =>
+                          prev ? { ...prev, kommentar: e.target.value } : null
+                        )
+                      }
+                      rows={4}
+                      placeholder="F.eks.: «Bruk er i tråd med godkjent bruksområde. Internkontroll bekreftet.»"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 px-5 py-4 border-t border-gray-100 justify-end">
+                  <button
+                    onClick={() => setBehandleState(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    onClick={lagreBehandling}
+                    className="px-5 py-2 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600"
+                  >
+                    Lagre behandling
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tilsynskommentarer */}
           <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-5">

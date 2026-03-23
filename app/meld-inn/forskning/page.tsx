@@ -154,9 +154,18 @@ export default function MeldInnForskningPage() {
           <p className="text-sm text-gray-600 mb-4">
             Forskningsprosjektet er nå registrert i det nasjonale KI-registeret.
           </p>
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-gray-50 rounded-lg p-4 mb-5">
             <p className="text-xs text-gray-500 mb-1">Referansenummer</p>
             <p className="font-mono font-bold text-lg text-primary-600">{referansenummer}</p>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 text-left">
+            <p className="text-xs font-semibold text-blue-800 mb-2">Neste steg:</p>
+            <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+              <li>DMP vil vurdere registreringen og bekrefte innen <strong>10 virkedager</strong></li>
+              <li>Du mottar e-post ved spørsmål eller behov for tilleggsopplysninger</li>
+              <li>Bruk referansenummeret ved all korrespondanse med DMP og REK</li>
+              <li>Husk å oppdatere registreringen ved vesentlige endringer i prosjektet</li>
+            </ol>
           </div>
           <div className="flex flex-col gap-3">
             <Link href="/utforsk" className="bg-primary-500 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
@@ -390,12 +399,32 @@ export default function MeldInnForskningPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <FormFelt label="Planlagt oppstart *">
-                  <input type="date" value={data.oppstart} onChange={(e) => update("oppstart", e.target.value)} className={INPUT_KLASSE} />
+                  <input
+                    type="date"
+                    value={data.oppstart}
+                    onChange={(e) => update("oppstart", e.target.value)}
+                    className={INPUT_KLASSE}
+                  />
                 </FormFelt>
                 <FormFelt label="Planlagt sluttdato *">
-                  <input type="date" value={data.slutt} onChange={(e) => update("slutt", e.target.value)} className={INPUT_KLASSE} />
+                  <input
+                    type="date"
+                    value={data.slutt}
+                    onChange={(e) => update("slutt", e.target.value)}
+                    min={data.oppstart || undefined}
+                    className={`${INPUT_KLASSE} ${
+                      data.oppstart && data.slutt && data.slutt < data.oppstart
+                        ? "border-red-300 bg-red-50"
+                        : ""
+                    }`}
+                  />
                 </FormFelt>
               </div>
+              {data.oppstart && data.slutt && data.slutt < data.oppstart && (
+                <p className="text-xs text-red-600 -mt-2">
+                  Sluttdato kan ikke være før oppstartsdato.
+                </p>
+              )}
 
               {/* Oppsummering regulatorisk */}
               <div className="bg-gray-50 rounded-lg p-4">
