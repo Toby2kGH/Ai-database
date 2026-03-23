@@ -24,6 +24,11 @@ const NAV_LENKER = [
     roller: ["forsker", "klinisk-leder"],
   },
   {
+    href: "/meld-inn/bruk",
+    label: "Meld inn bruk",
+    roller: ["virksomhetsleder", "klinisk-leder", "rhf-koordinator"],
+  },
+  {
     href: "/tilsyn",
     label: "Tilsynsvisning",
     roller: ["tilsynsansvarlig", "dmp-saksbehandler"],
